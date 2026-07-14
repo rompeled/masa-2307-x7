@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>היום של עלמה</title>
+<style>
+  :root {
+    --bg: #faf5ef;
+    --ink: #2b2118;
+    --accent: #c4593a;
+    --accent-dark: #a13e24;
+    --gold: #b8860b;
+    --green: #7a9e7e;
+    --card: #ffffff;
+    --muted: #8a7a6a;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Heebo", "Arial Hebrew", sans-serif;
+    line-height: 1.6;
+    overflow-x: hidden;
+    min-height: 100svh;
+  }
+  .screen { display: none; max-width: 560px; margin: 0 auto; padding: 34px 22px 90px; }
+  .screen.on { display: block; animation: fadeUp .5s ease both; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+  @keyframes pop { 0% { transform: scale(.9); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+
+  h1 { font-size: clamp(40px, 11vw, 56px); font-weight: 900; color: var(--accent); line-height: 1.1; }
+  h2 { font-size: 28px; font-weight: 900; color: var(--accent); }
+  .kicker { font-size: 14px; font-weight: 700; color: var(--gold); letter-spacing: 1px; }
+  .muted { color: var(--muted); font-size: 15px; }
+
+  .btn {
+    display: inline-block; margin-top: 22px;
+    background: var(--accent); color: #fff; border: none; cursor: pointer;
+    font-size: 19px; font-weight: 700; font-family: inherit;
+    padding: 14px 36px; border-radius: 999px;
+    box-shadow: 0 6px 18px rgba(196,89,58,.35);
+    transition: transform .15s ease;
+  }
+  .btn:active { transform: scale(.96); }
+  .btn.ghost { background: transparent; color: var(--accent); box-shadow: none; border: 2px solid var(--accent); }
+  .btn.small { font-size: 16px; padding: 10px 24px; }
+
+  /* ---------- home: מפת מסע ---------- */
+  .progress-row { display: flex; align-items: center; gap: 10px; margin-top: 20px; }
+  .pbar { flex: 1; height: 16px; background: #ecdfcd; border-radius: 999px; overflow: hidden; box-shadow: inset 0 2px 4px rgba(43,33,24,.08); }
+  #pfill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent), var(--gold)); border-radius: 999px; transition: width .9s ease; }
+  #ppct { font-weight: 900; color: var(--accent); font-size: 17px; min-width: 44px; text-align: left; }
+
+  .map-wrap { position: relative; margin-top: 10px; }
+  .map-svg { display: block; width: 100%; }
+  .node {
+    position: absolute; width: 64px; height: 64px; border-radius: 50%;
+    background: var(--card); border: 3px solid #d8cfc4;
+    box-shadow: 0 6px 16px rgba(43,33,24,.14);
+    font-size: 30px; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transform: translate(-50%, -50%); padding: 0; font-family: inherit;
+  }
+  .node.done { border-color: var(--green); background: #eef4e9; }
+  .node.next { border-color: var(--accent); animation: pulse 1.7s infinite; }
+  .node.locked { filter: grayscale(.5); opacity: .7; }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(196,89,58,.45); }
+    70% { box-shadow: 0 0 0 16px rgba(196,89,58,0); }
+    100% { box-shadow: 0 0 0 0 rgba(196,89,58,0); }
+  }
+  .node .badge {
+    position: absolute; top: -7px; inset-inline-end: -7px;
+    background: var(--green); color: #fff; width: 24px; height: 24px; border-radius: 50%;
+    font-size: 15px; font-weight: 900; display: flex; align-items: center; justify-content: center;
+    border: 2px solid var(--bg);
+  }
+  .node-lbl {
+    position: absolute; transform: translate(-50%, 0); text-align: center;
+    font-size: 13px; font-weight: 800; color: #6d5d4d; width: 118px; line-height: 1.25;
+    pointer-events: none;
+  }
+  .deco { position: absolute; transform: translate(-50%, -50%); font-size: 22px; opacity: .4; pointer-events: none; }
+
+  /* ---------- stage inner ---------- */
+  .paper {
+    background: var(--card); border-radius: 18px; padding: 26px 22px;
+    box-shadow: 0 8px 30px rgba(43,33,24,.08);
+    font-size: 19px; margin-top: 18px;
+  }
+  .paper p { margin-bottom: 14px; }
+  .paper p:last-child { margin-bottom: 0; }
+
+  .code-box { text-align: center; margin-top: 30px; }
+  .code-box .lock { font-size: 56px; }
+  .code-box .prompt { font-size: 20px; font-weight: 700; margin-top: 12px; }
+
+  input.answer {
+    display: block; width: 100%; margin-top: 18px;
+    font-size: 20px; font-family: inherit; text-align: center;
+    padding: 14px; border-radius: 14px; border: 2px solid #d8cfc4;
+    background: #fff; color: var(--ink); outline: none;
+  }
+  input.answer:focus { border-color: var(--accent); }
+  .feedback { min-height: 28px; margin-top: 12px; font-size: 17px; font-weight: 700; text-align: center; }
+  .feedback.bad { color: var(--accent-dark); }
+  .feedback.good { color: var(--green); }
+  .shake { animation: shake .35s ease; }
+  @keyframes shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(8px); } 75% { transform: translateX(-8px); } }
+
+  .q-progress { font-size: 14px; color: var(--muted); margin-top: 24px; }
+  .q-text { font-size: 23px; font-weight: 800; margin-top: 8px; }
+
+  .reveal { text-align: center; }
+  .reveal .big-emoji { font-size: 72px; animation: pop .5s ease both; }
+  .reveal .name { font-size: 32px; font-weight: 900; color: var(--accent); margin-top: 8px; }
+  .reveal .body { text-align: right; }
+  .reveal img { width: 100%; border-radius: 16px; margin-top: 16px; box-shadow: 0 10px 26px rgba(43,33,24,.14); }
+  .reveal .handoff {
+    margin-top: 22px; padding: 16px; border-radius: 14px;
+    background: #f3e8dd; font-size: 19px; font-weight: 800;
+  }
+
+  .buildup-line { font-size: 24px; font-weight: 700; margin: 20px 0; opacity: 0; transition: opacity .8s ease; text-align: center; }
+  .buildup-line.show { opacity: 1; }
+  .buildup-line.huge { font-size: clamp(38px, 11vw, 58px); font-weight: 900; color: var(--accent); line-height: 1.2; }
+
+  .ph { margin: 24px 0; }
+  .ph img { width: 100%; border-radius: 16px; display: block; box-shadow: 0 10px 26px rgba(43,33,24,.14); }
+  .ph figcaption { font-size: 15px; color: var(--muted); margin-top: 8px; padding: 0 4px; }
+
+  .back-row { margin-top: 30px; text-align: center; }
+  #confetti { position: fixed; inset: 0; pointer-events: none; z-index: 50; }
+  .hint-btn { margin-top: 14px; margin-inline: 6px; background: none; border: none; color: var(--gold); font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer; display: none; }
+  .mask {
+    display: none; margin-top: 16px; text-align: center;
+    font-size: 26px; font-weight: 900; letter-spacing: 4px; color: var(--gold);
+  }
+</style>
+</head>
+<body>
+
+<canvas id="confetti"></canvas>
+
+<!-- ======== מסך הבית ======== -->
+<div class="screen" id="home">
+  <div class="kicker">23.7 · יום ההולדת של</div>
+  <h1>עלמה 🎈</h1>
+  <p class="muted" style="margin-top:6px;">היום הזה בנוי מתחנות. כל תחנה נפתחת ברגע הנכון — ורום מחזיק את הקודים. אין לדלג. אין לנדנד. (מותר לנדנד קצת.)</p>
+  <div class="progress-row">
+    <div class="pbar"><div id="pfill"></div></div>
+    <div id="ppct">0%</div>
+  </div>
+  <div class="map-wrap" id="map"></div>
+  <p class="muted" style="margin-top:10px; text-align:center;" id="progress-note"></p>
+</div>
+
+<!-- ======== מסך שלב ======== -->
+<div class="screen" id="stage"></div>
+
+<script>
+/* =====================================================================
+   קונפיגורציה — כל התוכן כאן. רום כותב, ברוך מכניס.
+   כל הטקסטים כרגע הם פיגומים (PLACEHOLDER) עד שרום שולח את שלו.
+   ===================================================================== */
+
+const norm = s => (s || '').trim().replace(/[\s\-_.,!?'"״׳:;()]/g, '').replace(/ף/g,'פ').replace(/ם/g,'מ').replace(/ן/g,'נ').replace(/ץ/g,'צ').replace(/ך/g,'כ');
+
+// מפתח בדיקה זמני — עובד בכל שדה (קוד/חידה/ניחוש) עד שנכנס התוכן האמיתי. להסיר לפני 20.7!
+const TEST_KEY = 'PLACEHOLDER';
+const matches = (answers, value) => {
+  const v = norm(value);
+  return answers.some(a => norm(a) === v) || v.toUpperCase() === TEST_KEY;
+};
+
+const STAGES = [
+  {
+    id: 'letter',
+    icon: '✉️',
+    title: 'בוקר טוב, ילדת יום הולדת',
+    sub: 'מתחילים כאן. ברמת גן.',
+    code: { answers: ['PLACEHOLDER'] },   // רום יגדיר: הקוד לשלב הפתיחה
+    type: 'letter',
+    letter: [
+      'עלמה,',
+      '[כאן ייכנס המכתב של רום — הוא כותב, ברוך משכתב. פיגום זמני.]',
+      '— רום'
+    ]
+  },
+  {
+    id: 'gift-film',
+    icon: '🎁',
+    title: 'מתנה ראשונה',
+    sub: 'עוד בבית. לפני הקפה.',
+    code: { answers: ['PLACEHOLDER'] },
+    type: 'gift',
+    quiz: [
+      { q: 'באיזו סדנה היינו לפני חודש?', answers: ['סדנת פיתוח פילם', 'פיתוח פילם', 'סדנת פילם'] },
+      { q: '[שאלה מובילה 2 — רום כותב]', answers: ['PLACEHOLDER'] }
+    ],
+    guess: {
+      prompt: 'אז... יש לך ניחוש? מה המתנה?',
+      answers: ['מצלמת פילם', 'מצלמה', 'מצלמת פילים', 'מצלמתפילם'],
+      wrong: ['לא. אבל חמוד שניסית.', 'קר. קר מאוד.', 'ממש לא. תחשבי על הסדנה.', 'את מתקרבת? לא יודע. אולי. לא.'],
+      hints: ['רמז: זה קשור לסדנה ההיא.', 'רמז אחרון: 36 תמונות בגלגול.']
+    },
+    reveal: {
+      emoji: '📷',
+      name: 'מצלמת פילם + פילמים',
+      body: '[טקסט החשיפה — רום כותב. פיגום: כי התמונות הכי טובות שלנו יוצאות קצת שרופות.]',
+      photo: 'photos/film.jpg',
+      photoCap: 'זאת למשל. פילם אמיתי.',
+      handoff: 'עכשיו תסתכלי על רום. יש לו משהו בשבילך. 🎁 (ומהיום — את הצלמת הרשמית של היום הזה.)'
+    }
+  },
+  {
+    id: 'gift-helmet',
+    icon: '🎁',
+    title: 'מתנה שנייה',
+    sub: 'לפני שיוצאים מהבית.',
+    code: { answers: ['PLACEHOLDER'] },
+    type: 'gift',
+    quiz: [
+      { q: '[שאלה מובילה — למשל: על מה אני צועק עלייך כל פעם מחדש?]', answers: ['PLACEHOLDER'] }
+    ],
+    guess: {
+      prompt: 'נו? מה המתנה?',
+      answers: ['קסדה', 'כובע מגן', 'קסדת קורקינט'],
+      wrong: ['לא. תחשבי על משהו שמרגיז אותי.', 'קר. תחשבי קורקינט.', 'לא, אבל כיוון מעניין.'],
+      hints: ['רמז: זה קשור לקורקינט.', 'רמז אחרון: זה הולך על הראש.']
+    },
+    reveal: {
+      emoji: '🛴',
+      name: 'הקסדה הכי מביכה בישראל',
+      body: '[טקסט החשיפה — רום כותב. פיגום: הפסקתי לנאום על בטיחות. עשיתי לך קסדה עם הפרצוף שלך עליה. מעכשיו כל רחוב יידע מי זאת.]',
+      photo: null,
+      handoff: 'היא אמיתית. היא פיזית. תסתכלי על רום. 🎁'
+    }
+  },
+  {
+    id: 'surprise-train',
+    icon: '🚆',
+    title: 'רגע, לאן אנחנו נוסעים?',
+    sub: 'נפתח כשנהיה בדרך.',
+    code: { answers: ['PLACEHOLDER'] },
+    type: 'buildup',
+    lines: [
+      'את בטח שואלת את עצמך למה ביקשתי שתארזי תיק.',
+      'ולמה אנחנו ברכבת.',
+      'אז ככה:'
+    ],
+    punch: 'נוסעים לירושלים. 🌆',
+    after: {
+      body: '[טקסט של רום על היום בירושלים — פיגום.]',
+      photo: 'photos/jerusalem.jpg',
+      photoCap: 'הפעם הקודמת שלנו שם.'
+    }
+  },
+  {
+    id: 'gallery',
+    icon: '📸',
+    title: 'אנחנו — הגלריה',
+    sub: 'לדרך. שיהיה מה לראות ברכבת.',
+    code: { answers: ['PLACEHOLDER'] },
+    type: 'gallery',
+    photos: [
+      { src: 'photos/hero.jpg',  cap: '[כיתוב של רום]' },
+      { src: 'photos/g01.jpg',  cap: '[כיתוב של רום]' },
+      { src: 'photos/g02.jpg',  cap: '[כיתוב של רום]' },
+      { src: 'photos/g03.jpg',  cap: '[כיתוב של רום]' },
+      { src: 'photos/g04.jpg',  cap: '[כיתוב של רום]' },
+      { src: 'photos/g05.jpg',  cap: '[כיתוב של רום]' },
+      { src: 'photos/g06.jpg',  cap: '[כיתוב של רום]' },
+      { src: 'photos/g07.jpg',  cap: '[כיתוב של רום]' },
+      { src: 'photos/g08.jpg',  cap: '[כיתוב של רום]' },
+      { src: 'photos/g09.jpg',  cap: '[כיתוב של רום]' },
+      { src: 'photos/g10.jpg',  cap: '[כיתוב של רום]' },
+      { src: 'photos/g11.jpg',  cap: '[כיתוב של רום]' },
+      { src: 'photos/g12.jpg',  cap: '[כיתוב של רום]' },
+      { src: 'photos/g13.jpg',  cap: '[כיתוב של רום]' },
+      { src: 'photos/g14.jpg',  cap: '[כיתוב של רום]' },
+      { src: 'photos/train.jpg', cap: 'ככה את נראית בכל נסיעה מעל 11 דקות.' }
+    ]
+  },
+  {
+    id: 'game-matcha',
+    icon: '🍵',
+    title: 'הפסקת משחק',
+    sub: 'תפסי 20. אל תתפסי שטויות.',
+    code: { answers: ['PLACEHOLDER'] },
+    type: 'game'
+  },
+  {
+    id: 'gift-kindle',
+    icon: '🎁',
+    title: 'מתנה שלישית',
+    sub: 'איפשהו בירושלים.',
+    code: { answers: ['PLACEHOLDER'] },
+    type: 'gift',
+    quiz: [
+      { q: '[שאלה מובילה — למשל: מה את מסיימת יותר מהר משאני בוחר מה לראות?]', answers: ['PLACEHOLDER'] }
+    ],
+    guess: {
+      prompt: 'ניחוש. עכשיו.',
+      answers: ['קינדל', 'קורא ספרים', 'קורא אלקטרוני', 'kindle'],
+      wrong: ['לא. תחשבי ספרים.', 'קר. ספרייה שלמה בתיק.', 'כמעט? לא באמת.'],
+      hints: ['רמז: זה שוקל פחות מספר אחד ומכיל אלף.', 'רמז אחרון: אמזון המציאו את זה.']
+    },
+    reveal: {
+      emoji: '📚',
+      name: 'קינדל',
+      body: '[טקסט החשיפה — רום כותב. פיגום: ספרייה שלמה שנכנסת לתיק.]',
+      photo: 'photos/kindle.jpg',
+      photoCap: 'תיעוד: את קוראת, אני מחזיק דף ומעמיד פנים.',
+      handoff: 'תסתכלי על רום. 🎁'
+    }
+  },
+  {
+    id: 'surprise-hotel',
+    icon: '🌙',
+    title: 'עוד הפתעה קטנה',
+    sub: 'נפתח אחר הצהריים.',
+    code: { answers: ['PLACEHOLDER'] },
+    type: 'buildup',
+    lines: [
+      'שמת לב שלא אמרתי מתי חוזרים?',
+      'אז זהו.'
+    ],
+    punch: 'לא חוזרים היום.<br>ישנים בירושלים. 🏨',
+    after: {
+      body: '[טקסט של רום — פיגום.]',
+      photo: null
+    }
+  },
+  {
+    id: 'surprise-dinner',
+    icon: '🍽️',
+    title: 'והדבר האחרון להיום',
+    sub: 'נפתח לקראת ערב.',
+    code: { answers: ['PLACEHOLDER'] },
+    type: 'buildup',
+    lines: [
+      'רעבה?',
+      'יופי. כי יש לנו שולחן שמור.'
+    ],
+    punch: 'ארוחת ערב במסעדה.<br>הזמנתי מקום. 🥂',
+    after: {
+      body: '[טקסט של רום + אולי שם המסעדה או רמז אליה — פיגום.]',
+      photo: null
+    }
+  },
+  {
+    id: 'goodnight',
+    icon: '❤️',
+    title: 'סוף היום',
+    sub: 'לפני שנרדמים.',
+    code: { answers: ['PLACEHOLDER'] },
+    type: 'letter',
+    letter: [
+      '[מכתב סיום קצר של רום — פיגום.]',
+      'יום הולדת שמח, אהובה שלי. ❤️',
+      '— רום'
+    ]
+  }
+];
+
+/* ===================================================================== */
+
+const $ = id => document.getElementById(id);
+const store = {
+  get done() { try { return JSON.parse(localStorage.getItem('alma20') || '[]'); } catch { return []; } },
+  set done(v) { localStorage.setItem('alma20', JSON.stringify(v)); }
+};
+if (location.search.includes('reset')) { localStorage.removeItem('alma20'); history.replaceState(null,'',location.pathname); }
+const DEV = location.search.includes('dev');
+
+function stageState(i) {
+  const done = store.done;
+  if (done.includes(STAGES[i].id)) return 'done';
+  const firstUndone = STAGES.findIndex(s => !done.includes(s.id));
+  return i === firstUndone ? 'next' : 'locked';
+}
+
+function renderHome() {
+  $('stage').classList.remove('on');
+  $('home').classList.add('on');
+
+  const map = $('map');
+  const n = STAGES.length;
+  const W = map.clientWidth || 330;
+  const rowH = 116, top = 56;
+  const H = top + (n - 1) * rowH + 66;
+  map.style.height = H + 'px';
+
+  // נקודות בזיגזג — מתחילים מימין (עברית)
+  const pts = STAGES.map((s, i) => ({ x: W * (i % 2 === 0 ? 0.72 : 0.28), y: top + i * rowH }));
+  const seg = (q, p) => { const ym = (q.y + p.y) / 2; return `C ${q.x} ${ym}, ${p.x} ${ym}, ${p.x} ${p.y}`; };
+  const fullPath = pts.map((p, i) => i === 0 ? `M ${p.x} ${p.y}` : seg(pts[i - 1], p)).join(' ');
+  const doneCount = store.done.length;
+  const donePts = pts.slice(0, doneCount);
+  const donePath = donePts.length > 1 ? donePts.map((p, i) => i === 0 ? `M ${p.x} ${p.y}` : seg(donePts[i - 1], p)).join(' ') : '';
+
+  map.innerHTML = `<svg class="map-svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
+    <path d="${fullPath}" fill="none" stroke="#dfd0bb" stroke-width="6" stroke-dasharray="1 12" stroke-linecap="round"/>
+    ${donePath ? `<path d="${donePath}" fill="none" stroke="#c4593a" stroke-width="6" stroke-linecap="round" opacity=".8"/>` : ''}
+  </svg>`;
+
+  const DECO = ['✨', '🎈', '☁️', '🌸', '⭐', '🫧', '🌙', '💫', '🎉'];
+  STAGES.forEach((s, i) => {
+    const st = stageState(i);
+    const p = pts[i];
+
+    const node = document.createElement('button');
+    node.className = 'node ' + st;
+    node.style.left = p.x + 'px';
+    node.style.top = p.y + 'px';
+    node.innerHTML = (st === 'locked' ? '🔒' : s.icon) + (st === 'done' ? '<span class="badge">✓</span>' : '');
+    node.onclick = () => {
+      if (st === 'locked' && !DEV) {
+        node.classList.add('shake');
+        setTimeout(() => node.classList.remove('shake'), 400);
+        return;
+      }
+      openStage(i);
+    };
+    map.appendChild(node);
+
+    const lbl = document.createElement('div');
+    lbl.className = 'node-lbl';
+    lbl.style.left = p.x + 'px';
+    lbl.style.top = (p.y + 38) + 'px';
+    lbl.textContent = s.title;
+    map.appendChild(lbl);
+
+    const deco = document.createElement('div');
+    deco.className = 'deco';
+    deco.style.left = (W - p.x) + 'px';
+    deco.style.top = (p.y - 14) + 'px';
+    deco.textContent = DECO[i % DECO.length];
+    map.appendChild(deco);
+  });
+
+  const pct = Math.round(doneCount / n * 100);
+  $('pfill').style.width = pct + '%';
+  $('ppct').textContent = pct + '%';
+  $('progress-note').textContent = doneCount === 0 ? '' : doneCount === n ? 'זהו. עברת את כל היום. ❤️' : `עברת ${doneCount} מתוך ${n} תחנות`;
+  window.scrollTo(0, 0);
+}
+
+function openStage(i) {
+  const s = STAGES[i];
+  $('home').classList.remove('on');
+  const el = $('stage');
+  el.classList.add('on');
+  window.scrollTo(0, 0);
+  if (store.done.includes(s.id)) return renderContent(s, el, true);
+  renderCodeGate(s, el, i);
+}
+
+function renderCodeGate(s, el) {
+  el.innerHTML = `
+    <div class="kicker">${s.title}</div>
+    <div class="code-box">
+      <div class="lock">🔒</div>
+      <div class="prompt">השלב הזה נעול בקוד.</div>
+      <p class="muted" style="margin-top:6px;">רום יודע מה הקוד. תבקשי יפה.</p>
+      <input class="answer" id="code-in" placeholder="הקישי את הקוד..." autocomplete="off">
+      <div class="feedback" id="code-fb"></div>
+      <button class="btn" id="code-go">פתחי</button>
+    </div>
+    <div class="back-row"><button class="btn ghost small" onclick="renderHome()">חזרה</button></div>`;
+  const check = () => {
+    const v = $('code-in').value;
+    const ok = matches(s.code.answers, v) || (DEV && v === 'dev');
+    if (ok) { renderContent(s, el, false); }
+    else {
+      $('code-fb').className = 'feedback bad';
+      $('code-fb').textContent = ['לא זה.', 'נסי שוב.', 'עדיין לא. תשאלי את רום שוב.'][Math.floor(Math.random() * 3)];
+      $('code-in').classList.add('shake');
+      setTimeout(() => $('code-in').classList.remove('shake'), 400);
+    }
+  };
+  $('code-go').onclick = check;
+  $('code-in').addEventListener('keydown', e => { if (e.key === 'Enter') check(); });
+}
+
+function markDone(s) {
+  const d = store.done;
+  if (!d.includes(s.id)) { d.push(s.id); store.done = d; }
+}
+
+function renderContent(s, el, revisit) {
+  if (s.type === 'letter') return renderLetter(s, el);
+  if (s.type === 'gallery') return renderGallery(s, el);
+  if (s.type === 'buildup') return renderBuildup(s, el, revisit);
+  if (s.type === 'gift') return revisit ? renderReveal(s, el, true) : renderQuiz(s, el, 0);
+  if (s.type === 'game') return renderGame(s, el);
+}
+
+function renderLetter(s, el) {
+  markDone(s);
+  el.innerHTML = `
+    <div class="kicker">${s.title}</div>
+    <div class="paper">${s.letter.map(p => `<p>${p}</p>`).join('')}</div>
+    <div class="back-row"><button class="btn" onclick="renderHome()">חזרה למסע</button></div>`;
+}
+
+function renderGallery(s, el) {
+  markDone(s);
+  el.innerHTML = `
+    <div class="kicker">${s.title}</div>
+    <h2>אנחנו 📸</h2>
+    ${s.photos.map(p => `<figure class="ph"><img src="${p.src}" loading="lazy"><figcaption>${p.cap}</figcaption></figure>`).join('')}
+    <div class="back-row"><button class="btn" onclick="renderHome()">חזרה למסע</button></div>`;
+}
+
+/* מנוע ניסיונות משותף לחידות ולניחושים:
+   רמז (אם יש) אחרי 2 טעויות · הצעת אות אחרי 5 ואז כל 2 טעויות · הצגת התשובה אחרי 20.
+   האותיות נחשפות לפי חשיבות: תחילת כל מילה, אז סוף כל מילה, אז האמצע. */
+function challenge(box, opts) {
+  const FIRST_LETTER_AT = 5, NEXT_LETTER_EVERY = 2, MAX_LETTERS = 3, SHOW_AT = 20;
+  box.innerHTML = `
+    <input class="answer" id="ch-in" placeholder="${opts.placeholder}" autocomplete="off">
+    <div class="feedback" id="ch-fb"></div>
+    <div class="mask" id="ch-mask"></div>
+    <button class="btn" id="ch-go">${opts.submitLabel}</button>
+    <br>
+    <button class="hint-btn" id="ch-hint">אני צריכה רמז 🙋‍♀️</button>
+    <button class="hint-btn" id="ch-letter">תפתח לי אות 🔤</button>
+    <button class="hint-btn" id="ch-show">די, תראה לי את התשובה 😭</button>`;
+  const primary = opts.answers[0];
+  const chars = primary.split('');
+  // סדר חשיפה: אותיות מפתח קודם — פותחות מילים, אז סוגרות מילים, אז אמצעים
+  const starts = [], ends = [], mids = [];
+  chars.forEach((c, i) => {
+    if (c === ' ') return;
+    const atStart = i === 0 || chars[i - 1] === ' ';
+    const atEnd = i === chars.length - 1 || chars[i + 1] === ' ';
+    if (atStart) starts.push(i);
+    else if (atEnd) ends.push(i);
+    else mids.push(i);
+  });
+  const revealOrder = [...starts, ...ends, ...mids];
+  const revealed = new Set();
+  let tries = 0, hintIdx = 0, letters = 0, surrendered = false;
+  const maskText = () => chars.map((c, i) => c === ' ' ? '  ' : (surrendered || revealed.has(i) ? c : '_')).join(' ');
+  const refresh = () => {
+    $('ch-hint').style.display = (opts.hints && tries >= 2 && hintIdx < opts.hints.length) ? 'inline-block' : 'none';
+    const nonSpace = chars.filter(c => c !== ' ').length;
+    const needed = FIRST_LETTER_AT + NEXT_LETTER_EVERY * letters;
+    const canLetter = !surrendered && letters < Math.min(MAX_LETTERS, nonSpace - 1) && tries >= needed;
+    $('ch-letter').style.display = canLetter ? 'inline-block' : 'none';
+    $('ch-show').style.display = (!surrendered && tries >= SHOW_AT) ? 'inline-block' : 'none';
+  };
+  const check = () => {
+    const v = $('ch-in').value;
+    if (!norm(v)) return;
+    const ok = matches(opts.answers, v) || (DEV && v === 'dev');
+    if (ok) {
+      $('ch-fb').className = 'feedback good';
+      $('ch-fb').textContent = 'נכון. ✓';
+      setTimeout(opts.onSuccess, 600);
+      return;
+    }
+    tries++;
+    $('ch-fb').className = 'feedback bad';
+    $('ch-fb').textContent = opts.wrong[(tries - 1) % opts.wrong.length];
+    $('ch-in').classList.add('shake');
+    setTimeout(() => $('ch-in').classList.remove('shake'), 400);
+    $('ch-in').value = '';
+    refresh();
+  };
+  $('ch-go').onclick = check;
+  $('ch-in').addEventListener('keydown', e => { if (e.key === 'Enter') check(); });
+  $('ch-hint').onclick = () => {
+    $('ch-fb').className = 'feedback';
+    $('ch-fb').style.color = 'var(--gold)';
+    $('ch-fb').textContent = opts.hints[hintIdx];
+    hintIdx++;
+    refresh();
+  };
+  $('ch-letter').onclick = () => {
+    revealed.add(revealOrder[letters]);
+    letters++;
+    $('ch-mask').style.display = 'block';
+    $('ch-mask').textContent = maskText();
+    refresh();
+  };
+  $('ch-show').onclick = () => {
+    surrendered = true;
+    $('ch-mask').style.display = 'block';
+    $('ch-mask').textContent = maskText();
+    $('ch-fb').className = 'feedback';
+    $('ch-fb').style.color = 'var(--gold)';
+    $('ch-fb').textContent = 'זאת התשובה. עכשיו תקלידי אותה בעצמך, שיהיה רשמי.';
+    refresh();
+  };
+}
+
+function renderQuiz(s, el, qi) {
+  if (qi >= s.quiz.length) return renderGuess(s, el);
+  const q = s.quiz[qi];
+  el.innerHTML = `
+    <div class="kicker">${s.title}</div>
+    <div class="q-progress">שאלה ${qi + 1} מתוך ${s.quiz.length} — ואז מנחשים.</div>
+    <div class="q-text">${q.q}</div>
+    <div id="ch-box"></div>
+    <div class="back-row"><button class="btn ghost small" onclick="renderHome()">חזרה</button></div>`;
+  challenge($('ch-box'), {
+    placeholder: 'התשובה שלך...',
+    submitLabel: 'זאת התשובה שלי',
+    answers: q.answers,
+    wrong: q.wrong || ['לא.', 'נסי שוב.', 'לא-לא.'],
+    hints: q.hints,
+    onSuccess: () => renderQuiz(s, el, qi + 1)
+  });
+}
+
+function renderGuess(s, el) {
+  el.innerHTML = `
+    <div class="kicker">${s.title}</div>
+    <div class="q-text" style="margin-top:26px;">${s.guess.prompt}</div>
+    <p class="muted" style="margin-top:6px;">כמו וורדל, רק שבסוף מקבלים מתנה אמיתית.</p>
+    <div id="ch-box"></div>
+    <div class="back-row"><button class="btn ghost small" onclick="renderHome()">חזרה</button></div>`;
+  challenge($('ch-box'), {
+    placeholder: 'הניחוש שלך...',
+    submitLabel: 'מנחשת!',
+    answers: s.guess.answers,
+    wrong: s.guess.wrong,
+    hints: s.guess.hints,
+    onSuccess: () => renderReveal(s, el, false)
+  });
+}
+
+function renderReveal(s, el, revisit) {
+  markDone(s);
+  const r = s.reveal;
+  el.innerHTML = `
+    <div class="kicker">${s.title}</div>
+    <div class="reveal">
+      <div style="margin-top:30px;" class="big-emoji">${r.emoji}</div>
+      <div class="name">${r.name}</div>
+      <div class="paper body"><p>${r.body}</p></div>
+      ${r.photo ? `<figure class="ph"><img src="${r.photo}"><figcaption>${r.photoCap || ''}</figcaption></figure>` : ''}
+      <div class="handoff">${r.handoff}</div>
+    </div>
+    <div class="back-row"><button class="btn" onclick="renderHome()">חזרה למסע</button></div>`;
+  if (!revisit) confetti();
+}
+
+function renderBuildup(s, el, revisit) {
+  el.innerHTML = `
+    <div class="kicker">${s.title}</div>
+    <div id="bu"></div>
+    <div class="back-row" id="bu-back" style="display:none;"><button class="btn" onclick="renderHome()">חזרה למסע</button></div>`;
+  const bu = $('bu');
+  const items = [
+    ...s.lines.map(t => ({ t, cls: 'buildup-line' })),
+    { t: s.punch, cls: 'buildup-line huge' }
+  ];
+  items.forEach(it => {
+    const d = document.createElement('div');
+    d.className = it.cls;
+    d.innerHTML = it.t;
+    bu.appendChild(d);
+  });
+  const after = document.createElement('div');
+  after.className = 'buildup-line';
+  after.innerHTML = `<div class="paper" style="text-align:right;"><p>${s.after.body}</p></div>
+    ${s.after.photo ? `<figure class="ph"><img src="${s.after.photo}"><figcaption>${s.after.photoCap || ''}</figcaption></figure>` : ''}`;
+  bu.appendChild(after);
+  const all = [...bu.children];
+  const delay = revisit ? 150 : 1500;
+  all.forEach((d, i) => setTimeout(() => {
+    d.classList.add('show');
+    if (!revisit && d.classList.contains('huge')) confetti();
+    if (i === all.length - 1) { markDone(s); $('bu-back').style.display = 'block'; }
+  }, delay * i + 400));
+}
+
+/* ---------- משחק המאצ'ה ---------- */
+function renderGame(s, el) {
+  el.innerHTML = `
+    <div class="kicker">${s.title}</div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
+      <h2 style="font-size:24px;">תפסי את המאצ'ה 🍵</h2>
+      <div id="gm-score" style="font-size:22px; font-weight:900; color:var(--accent);">0 / 20</div>
+    </div>
+    <p class="muted" style="margin-top:4px;">זזים עם האצבע. מאצ'ה = טוב. כל השאר = פסילה.</p>
+    <canvas id="gm-canvas" style="width:100%; border-radius:16px; background:linear-gradient(#f6efe6,#efe3d3); box-shadow:0 8px 24px rgba(43,33,24,.12); touch-action:none; margin-top:12px;"></canvas>
+    <div id="gm-msg" style="text-align:center; margin-top:14px;"></div>
+    <div class="back-row"><button class="btn ghost small" onclick="stopGame(); renderHome()">חזרה</button></div>`;
+  gmFails = 0;
+  startGame(s);
+}
+
+let gmLoop = null, gmSpawner = null, gmFails = 0;
+function stopGame() {
+  if (gmLoop) clearInterval(gmLoop);
+  if (gmSpawner) clearInterval(gmSpawner);
+  gmLoop = gmSpawner = null;
+}
+
+function startGame(s) {
+  stopGame();
+  const cv = $('gm-canvas'), ctx = cv.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const cssW = cv.clientWidth || 330;
+  const cssH = Math.min(Math.round(window.innerHeight * 0.58), 560);
+  cv.style.height = cssH + 'px';
+  cv.width = cssW * dpr; cv.height = cssH * dpr;
+  ctx.scale(dpr, dpr);
+  const W = cssW, H = cssH;
+
+  const face = new Image(); face.src = 'photos/face.jpg';
+  const JUNK = ['🧦', '🍕', '☕', '🧅', '🪳', '👟', '🧻', '📎'];
+  const P = { x: W / 2, y: H - 52, r: 30 };
+  let items = [], score = 0, over = false, won = false, bonusSpawned = false, bonusCaught = false, t0 = performance.now();
+
+  const setMsg = html => { $('gm-msg').innerHTML = html; };
+  const setScore = () => { $('gm-score').textContent = Math.min(score, 20) + ' / 20' + (bonusCaught ? ' +1' : ''); };
+
+  // ציור כוס מאצ'ה — אין אמוג'י כזה, אז מציירים
+  function drawMatcha(x, y, size, golden) {
+    ctx.save();
+    ctx.translate(x, y);
+    const w = size, h = size * 1.15;
+    // כוס זכוכית
+    ctx.beginPath();
+    ctx.moveTo(-w / 2, -h / 2);
+    ctx.lineTo(-w / 2 + 2, h / 2 - 4);
+    ctx.quadraticCurveTo(-w / 2 + 2, h / 2, -w / 2 + 6, h / 2);
+    ctx.lineTo(w / 2 - 6, h / 2);
+    ctx.quadraticCurveTo(w / 2 - 2, h / 2, w / 2 - 2, h / 2 - 4);
+    ctx.lineTo(w / 2, -h / 2);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(255,255,255,.55)';
+    ctx.fill();
+    ctx.strokeStyle = golden ? '#b8860b' : '#9c8a76';
+    ctx.lineWidth = golden ? 2.5 : 1.5;
+    ctx.stroke();
+    // המאצ'ה עצמה
+    ctx.beginPath();
+    ctx.moveTo(-w / 2 + 3, -h / 2 + h * .28);
+    ctx.lineTo(-w / 2 + 4.5, h / 2 - 4);
+    ctx.quadraticCurveTo(-w / 2 + 4.5, h / 2 - 2, -w / 2 + 8, h / 2 - 2);
+    ctx.lineTo(w / 2 - 8, h / 2 - 2);
+    ctx.quadraticCurveTo(w / 2 - 4.5, h / 2 - 2, w / 2 - 4.5, h / 2 - 4);
+    ctx.lineTo(w / 2 - 3, -h / 2 + h * .28);
+    ctx.closePath();
+    const g = ctx.createLinearGradient(0, -h / 4, 0, h / 2);
+    g.addColorStop(0, golden ? '#d4b12f' : '#9dbf5e');
+    g.addColorStop(1, golden ? '#a8821a' : '#5f8f3e');
+    ctx.fillStyle = g;
+    ctx.fill();
+    // קצף בהיר למעלה
+    ctx.beginPath();
+    ctx.ellipse(0, -h / 2 + h * .28, w / 2 - 3.5, 4.5, 0, 0, Math.PI * 2);
+    ctx.fillStyle = golden ? '#f0dd8a' : '#c8e09a';
+    ctx.fill();
+    // קשית
+    ctx.beginPath();
+    ctx.moveTo(w * .12, -h / 2 + h * .26);
+    ctx.lineTo(w * .3, -h / 2 - h * .18);
+    ctx.strokeStyle = golden ? '#b8860b' : '#c4593a';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawFace() {
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(P.x, P.y, P.r, 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.clip();
+    if (face.complete && face.naturalWidth) ctx.drawImage(face, P.x - P.r, P.y - P.r, P.r * 2, P.r * 2);
+    else { ctx.fillStyle = '#e8b4a0'; ctx.fill(); }
+    ctx.restore();
+    ctx.beginPath();
+    ctx.arc(P.x, P.y, P.r, 0, Math.PI * 2);
+    ctx.strokeStyle = '#c4593a';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+  }
+
+  function spawn() {
+    if (over || won) return;
+    if (score >= 20) return; // אחרי 20 — רק כוס הבונוס
+    const isJunk = Math.random() < 0.35;
+    items.push({
+      x: 24 + Math.random() * (W - 48),
+      y: -30,
+      vy: 100 + Math.min(score * 5.5, 130) + Math.random() * 55,  // פיקסלים לשנייה
+      junk: isJunk,
+      emoji: isJunk ? JUNK[Math.floor(Math.random() * JUNK.length)] : null,
+      golden: false
+    });
+  }
+  gmSpawner = setInterval(spawn, 800);
+
+  function spawnBonus() {
+    bonusSpawned = true;
+    items.push({ x: W / 2, y: -40, vy: 130, junk: false, emoji: null, golden: true });
+  }
+
+  function endWin() {
+    won = true;
+    stopGame();
+    confetti();
+    setMsg(`<div style="font-size:26px; font-weight:900; color:var(--accent);">20 מתוך 20! 🎉</div>
+      <div style="font-size:18px; margin-top:6px;">${bonusCaught ? 'ותפסת גם את ה-21 — אחת לשנה הבאה. 🥂' : 'וה-21? מחכה לך בשנה הבאה. 🥂'}</div>
+      <button class="btn small" style="margin-top:12px;" onclick="startGame(STAGES.find(x=>x.id==='game-matcha'))">עוד סיבוב</button>`);
+    markDone(s);
+  }
+
+  function endFail(emoji) {
+    over = true;
+    gmFails++;
+    stopGame();
+    const skip = gmFails >= 3
+      ? `<br><button class="hint-btn" style="display:inline-block;" onclick="markDone(STAGES.find(x=>x.id==='game-matcha')); renderHome()">טוב, די, שחררי אותי 🏳️</button>`
+      : '';
+    setMsg(`<div style="font-size:24px; font-weight:900; color:var(--accent-dark);">נפסלת! תפסת ${emoji} 🤦</div>
+      <div style="font-size:16px; margin-top:4px;">מאצ'ה. רק מאצ'ה. מתחילים מההתחלה.</div>
+      <button class="btn small" style="margin-top:12px;" onclick="startGame(STAGES.find(x=>x.id==='game-matcha'))">עוד פעם</button>${skip}`);
+  }
+
+  let lastT = performance.now();
+  function tick() {
+    if (over || won) return;
+    const now = performance.now();
+    const dt = Math.min((now - lastT) / 1000, 0.25); // שניות, עם תקרה נגד קפיצות
+    lastT = now;
+    ctx.clearRect(0, 0, W, H);
+    items.forEach(it => {
+      it.y += it.vy * dt;
+      if (it.junk) { ctx.font = '30px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(it.emoji, it.x, it.y); }
+      else drawMatcha(it.x, it.y, it.golden ? 34 : 26, it.golden);
+    });
+    // תפיסות
+    const caught = [];
+    items.forEach(it => {
+      if (Math.abs(it.x - P.x) < P.r + 14 && Math.abs(it.y - P.y) < P.r + 6) caught.push(it);
+    });
+    for (const it of caught) {
+      items = items.filter(o => o !== it);
+      if (it.junk) return endFail(it.emoji);
+      if (it.golden) { bonusCaught = true; setScore(); return endWin(); }
+      score++;
+      setScore();
+      if (score >= 20 && !bonusSpawned) spawnBonus();
+    }
+    // כוס הבונוס נפלה על הרצפה — עדיין ניצחון
+    const bonusMissed = items.some(it => it.golden && it.y > H + 30);
+    if (bonusMissed) return endWin();
+    items = items.filter(it => it.y < H + 40);
+    drawFace();
+  }
+
+  const move = e => {
+    const rect = cv.getBoundingClientRect();
+    const cx = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+    P.x = Math.max(P.r, Math.min(W - P.r, cx));
+  };
+  cv.addEventListener('pointermove', move);
+  cv.addEventListener('touchmove', e => { e.preventDefault(); move(e); }, { passive: false });
+
+  setScore();
+  setMsg('');
+  if (DEV) window.__gm = { add: it => items.push(it), setX: x => { P.x = x; }, score: () => score, W, H };
+  gmLoop = setInterval(tick, 16);
+}
+
+/* ---------- קונפטי ---------- */
+function confetti() {
+  const c = $('confetti'), x = c.getContext('2d');
+  c.width = innerWidth; c.height = innerHeight;
+  const colors = ['#c4593a', '#e8b4a0', '#b8860b', '#7a9e7e', '#e4c05c'];
+  const parts = Array.from({ length: 130 }, () => ({
+    x: Math.random() * c.width, y: -20 - Math.random() * c.height * .4,
+    r: 4 + Math.random() * 6, vy: 2 + Math.random() * 3.5, vx: -1.5 + Math.random() * 3,
+    col: colors[Math.floor(Math.random() * colors.length)], rot: Math.random() * Math.PI, vr: -.1 + Math.random() * .2
+  }));
+  let t = 0;
+  (function tick() {
+    x.clearRect(0, 0, c.width, c.height);
+    parts.forEach(p => {
+      p.y += p.vy; p.x += p.vx; p.rot += p.vr;
+      x.save(); x.translate(p.x, p.y); x.rotate(p.rot);
+      x.fillStyle = p.col; x.fillRect(-p.r, -p.r / 2, p.r * 2, p.r);
+      x.restore();
+    });
+    if (++t < 380) requestAnimationFrame(tick); else x.clearRect(0, 0, c.width, c.height);
+  })();
+}
+
+renderHome();
+</script>
+</body>
+</html>

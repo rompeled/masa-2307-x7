@@ -148,9 +148,15 @@
   .mem-card.matched { outline: 3px solid var(--green); outline-offset: -2px; }
 
   /* ---------- פאזל ---------- */
-  .pz-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-top: 16px; }
-  .pz-tile { aspect-ratio: 1; border: none; border-radius: 8px; cursor: pointer; background-size: 300% 300%; padding: 0; }
-  .pz-tile.sel { outline: 3px solid var(--accent); outline-offset: -2px; transform: scale(.96); }
+  .pz-board { position: relative; margin-top: 16px; border-radius: 14px; overflow: visible; background: #efe4d4; box-shadow: inset 0 2px 8px rgba(43,33,24,.12); }
+  .pz-ghost { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .22; border-radius: 14px; pointer-events: none; }
+  .pz-slot { position: absolute; background: none; border: 1.5px dashed rgba(140,120,95,.4); cursor: pointer; padding: 0; }
+  .pz-slot.filled { border: none; pointer-events: none; }
+  .pz-placed { position: absolute; pointer-events: none; z-index: 3; }
+  .pz-tray { display: flex; gap: 8px; overflow-x: auto; padding: 12px 4px; margin-top: 12px; }
+  .pz-piece { flex-shrink: 0; border: none; background: none; padding: 0; cursor: pointer; }
+  .pz-piece canvas { display: block; }
+  .pz-piece.sel { outline: 3px solid var(--accent); outline-offset: 2px; border-radius: 8px; transform: scale(1.06); }
   #confetti { position: fixed; inset: 0; pointer-events: none; z-index: 50; }
   .hint-btn { margin-top: 14px; margin-inline: 6px; background: none; border: none; color: var(--gold); font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer; display: none; }
   .mask {
@@ -360,7 +366,7 @@ const STAGES = [
     sub: 'תרכיבי אותנו בחזרה.',
     code: { answers: ['PLACEHOLDER'] },
     type: 'puzzle',
-    img: 'photos/g11.jpg',
+    img: 'photos/puzzle.jpg',
     caption: '[כיתוב של רום לתמונת הפאזל]'
   },
   {
@@ -379,6 +385,19 @@ const STAGES = [
       body: '[טקסט של רום — פיגום.]',
       photo: null
     }
+  },
+  {
+    id: 'game-quotes',
+    icon: '🗣️',
+    title: 'רום או עלמה?',
+    sub: 'מי אמר את זה. בלי לריב.',
+    code: { answers: ['PLACEHOLDER'] },
+    type: 'quotes',
+    quotes: [
+      { t: '[ציטוט פיגום 1 — רום ימלא בטופס]', who: 'רום' },
+      { t: '[ציטוט פיגום 2]', who: 'עלמה' },
+      { t: '[ציטוט פיגום 3]', who: 'רום' }
+    ]
   },
   {
     id: 'surprise-dinner',
@@ -552,6 +571,7 @@ function renderContent(s, el, revisit) {
   if (s.type === 'memory') return renderMemory(s, el);
   if (s.type === 'puzzle') return renderPuzzle(s, el);
   if (s.type === 'runner') return renderRunner(s, el);
+  if (s.type === 'quotes') return renderQuotes(s, el);
 }
 
 function renderLetter(s, el) {
@@ -973,40 +993,130 @@ function renderMemory(s, el) {
   });
 }
 
-/* ---------- הפאזל ---------- */
+/* ---------- הפאזל — לשונות אמיתיות, בחירת חלק והנחה ---------- */
 function renderPuzzle(s, el) {
   const N = 3;
-  let order = [...Array(N * N).keys()];
-  do { order.sort(() => Math.random() - .5); } while (order.every((v, i) => v === i));
   el.innerHTML = `
     <div class="kicker">${s.title}</div>
     <h2 style="margin-top:10px;">תרכיבי אותנו 🧩</h2>
-    <p class="muted" style="margin-top:4px;">לוחצים על שני חלקים כדי להחליף ביניהם.</p>
-    <div class="pz-grid" id="pz"></div>
-    <div id="pz-msg" style="text-align:center; margin-top:14px;"></div>
+    <p class="muted" style="margin-top:4px;">בוחרים חלק מלמטה ולוחצים איפה שהוא שייך. התמונה החיוורת עוזרת.</p>
+    <div class="pz-board" id="pz-board"><img class="pz-ghost" src="${s.img}"></div>
+    <div class="pz-tray" id="pz-tray"></div>
+    <div id="pz-msg" style="text-align:center; margin-top:10px;"></div>
     <div class="back-row"><button class="btn ghost small" onclick="renderHome()">חזרה</button></div>`;
-  let sel = null, done = false;
-  const draw = () => {
-    $('pz').innerHTML = order.map((t, pos) =>
-      `<button class="pz-tile" data-pos="${pos}" style="background-image:url(${s.img}); background-position:${(t % N) * 50}% ${Math.floor(t / N) * 50}%;"></button>`).join('');
-    $('pz').querySelectorAll('.pz-tile').forEach(tile => tile.onclick = () => {
-      if (done) return;
-      const pos = +tile.dataset.pos;
-      if (sel === null) { sel = pos; tile.classList.add('sel'); return; }
-      if (sel === pos) { sel = null; tile.classList.remove('sel'); return; }
-      [order[sel], order[pos]] = [order[pos], order[sel]];
-      sel = null;
-      draw();
-      if (order.every((v, i) => v === i)) {
-        done = true;
-        confetti();
-        markDone(s);
-        $('pz-msg').innerHTML = `<div style="font-size:24px; font-weight:900; color:var(--accent);">הורכבנו! 🎉</div>
-          <figure class="ph"><img src="${s.img}"><figcaption>${s.caption}</figcaption></figure>`;
-      }
+
+  let built = false;
+  const img = new Image();
+  img.onload = build;
+  img.src = s.img;
+  if (img.complete) build();
+
+  function build() {
+    if (built) return; built = true;
+    const board = $('pz-board');
+    const boardW = board.clientWidth;
+    board.style.height = boardW + 'px';
+    const cell = boardW / N, bleed = cell * 0.22, tab = bleed * 0.85;
+    const k = img.width / boardW;
+
+    const rnd = () => Math.random() < .5 ? 1 : -1;
+    const HE = [[rnd(), rnd(), rnd()], [rnd(), rnd(), rnd()]];   // צלעות בין שורות
+    const VE = [[rnd(), rnd()], [rnd(), rnd()], [rnd(), rnd()]]; // צלעות בין עמודות
+
+    // מסלול חלק פאזל: sign 1 = לשון החוצה, -1 = שקע, 0 = צלע חיצונית ישרה
+    function piecePath(ctx, S, sg) {
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      if (!sg.top) ctx.lineTo(S, 0);
+      else { ctx.lineTo(S * .35, 0); ctx.bezierCurveTo(S * .30, -sg.top * tab, S * .70, -sg.top * tab, S * .65, 0); ctx.lineTo(S, 0); }
+      if (!sg.right) ctx.lineTo(S, S);
+      else { ctx.lineTo(S, S * .35); ctx.bezierCurveTo(S + sg.right * tab, S * .30, S + sg.right * tab, S * .70, S, S * .65); ctx.lineTo(S, S); }
+      if (!sg.bottom) ctx.lineTo(0, S);
+      else { ctx.lineTo(S * .65, S); ctx.bezierCurveTo(S * .70, S + sg.bottom * tab, S * .30, S + sg.bottom * tab, S * .35, S); ctx.lineTo(0, S); }
+      if (!sg.left) ctx.lineTo(0, 0);
+      else { ctx.lineTo(0, S * .65); ctx.bezierCurveTo(-sg.left * tab, S * .70, -sg.left * tab, S * .30, 0, S * .35); ctx.lineTo(0, 0); }
+      ctx.closePath();
+    }
+
+    const pieces = [];
+    for (let i = 0; i < N * N; i++) {
+      const r = Math.floor(i / N), c = i % N;
+      const sg = {
+        top: r === 0 ? 0 : -HE[r - 1][c],
+        bottom: r === N - 1 ? 0 : HE[r][c],
+        left: c === 0 ? 0 : -VE[r][c - 1],
+        right: c === N - 1 ? 0 : VE[r][c]
+      };
+      const size = cell + 2 * bleed;
+      const cv = document.createElement('canvas');
+      cv.width = cv.height = Math.round(size);
+      const ctx = cv.getContext('2d');
+      ctx.save();
+      ctx.translate(bleed, bleed);
+      piecePath(ctx, cell, sg);
+      ctx.clip();
+      ctx.drawImage(img,
+        (c * cell - bleed) * k, (r * cell - bleed) * k, size * k, size * k,
+        -bleed, -bleed, size, size);
+      ctx.restore();
+      ctx.save();
+      ctx.translate(bleed, bleed);
+      piecePath(ctx, cell, sg);
+      ctx.strokeStyle = 'rgba(255,255,255,.8)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.restore();
+      pieces.push({ i, cv, r, c });
+    }
+
+    // משבצות יעד
+    let selected = null, placed = 0;
+    pieces.forEach(p => {
+      const slot = document.createElement('button');
+      slot.className = 'pz-slot';
+      Object.assign(slot.style, { left: p.c * cell + 'px', top: p.r * cell + 'px', width: cell + 'px', height: cell + 'px' });
+      slot.dataset.i = p.i;
+      slot.onclick = () => {
+        if (!selected || slot.classList.contains('filled')) return;
+        if (selected.p.i !== p.i) {
+          slot.classList.add('shake');
+          setTimeout(() => slot.classList.remove('shake'), 400);
+          return;
+        }
+        const cvEl = selected.p.cv;
+        cvEl.style.width = (cell + 2 * bleed) + 'px';
+        cvEl.className = 'pz-placed';
+        cvEl.style.left = (selected.p.c * cell - bleed) + 'px';
+        cvEl.style.top = (selected.p.r * cell - bleed) + 'px';
+        board.appendChild(cvEl);
+        selected.btn.remove();
+        selected = null;
+        slot.classList.add('filled');
+        if (++placed === N * N) {
+          confetti();
+          markDone(s);
+          $('pz-msg').innerHTML = `<div style="font-size:24px; font-weight:900; color:var(--accent);">הורכבנו! 🎉</div>
+            <div class="muted" style="font-size:15px;">${s.caption}</div>`;
+        }
+      };
+      board.appendChild(slot);
     });
-  };
-  draw();
+
+    // מגש מעורבב
+    const tray = $('pz-tray');
+    [...pieces].sort(() => Math.random() - .5).forEach(p => {
+      const btn = document.createElement('button');
+      btn.className = 'pz-piece';
+      p.cv.style.width = '84px';
+      btn.appendChild(p.cv);
+      btn.onclick = () => {
+        tray.querySelectorAll('.pz-piece').forEach(x => x.classList.remove('sel'));
+        btn.classList.add('sel');
+        selected = { p, btn };
+      };
+      tray.appendChild(btn);
+    });
+  }
 }
 
 /* ---------- ראנר הקורקינט ---------- */
@@ -1024,8 +1134,8 @@ function renderRunner(s, el) {
       <h2 style="font-size:24px;">ראנר הקורקינט 🛴</h2>
       <div id="rn-score" style="font-size:20px; font-weight:900; color:var(--accent);">0 מ׳</div>
     </div>
-    <p class="muted" style="margin-top:4px;">טאפ = קפיצה. תשרדי 300 מטר. סוף סוף עם קסדה.</p>
-    <canvas id="rn-canvas" style="width:100%; border-radius:16px; background:linear-gradient(#f8f2e9 70%, #eadfcd 70%); box-shadow:0 8px 24px rgba(43,33,24,.12); touch-action:none; margin-top:12px;"></canvas>
+    <p class="muted" style="margin-top:4px;">החליקי ימינה/שמאלה — נתיבים · למעלה (או טאפ) — קפיצה · למטה — התכופפות. 🚧 מתחלפים נתיב, מעל 🕳️ קופצים, מתחת לשלט מתכופפים. 300 מטר.</p>
+    <canvas id="rn-canvas" style="width:100%; border-radius:16px; background:linear-gradient(#efe3d1, #e6d7c0); box-shadow:0 8px 24px rgba(43,33,24,.12); touch-action:none; margin-top:12px;"></canvas>
     <div id="rn-msg" style="text-align:center; margin-top:14px;"></div>
     <div class="back-row"><button class="btn ghost small" onclick="stopRunner(); renderHome()">חזרה</button></div>`;
   rnFails = 0;
@@ -1036,46 +1146,18 @@ function startRunner(s) {
   stopRunner();
   const cv = $('rn-canvas'), ctx = cv.getContext('2d');
   const dpr = window.devicePixelRatio || 1;
-  const cssW = cv.clientWidth || 330, cssH = Math.min(Math.round(window.innerHeight * 0.42), 400);
+  const cssW = cv.clientWidth || 330, cssH = Math.min(Math.round(window.innerHeight * 0.52), 500);
   cv.style.height = cssH + 'px';
   cv.width = cssW * dpr; cv.height = cssH * dpr;
   ctx.scale(dpr, dpr);
-  const W = cssW, H = cssH, GROUND = H * 0.78;
+  const W = cssW, H = cssH;
+  const LANES = [W * 0.18, W * 0.5, W * 0.82];
+  const laneW = W * 0.3;
 
   const face = new Image(); face.src = 'photos/face.jpg';
   const GOAL = 300;
-  const P = { x: W - 80, y: GROUND, vy: 0, r: 22 };
-  let obstacles = [], dist = 0, speed = 150, over = false, won = false;
-  const OBS = ['🚧', '🐈', '🕳️', '🛒'];
-
-  function drawPlayer() {
-    const wheelY = GROUND + 16;
-    ctx.strokeStyle = '#6d5d4d'; ctx.lineWidth = 3;
-    // גלגלים + דק
-    const dy = P.y - GROUND; // הרמה בקפיצה
-    ctx.beginPath(); ctx.arc(P.x - 16, wheelY + dy, 7, 0, Math.PI * 2); ctx.stroke();
-    ctx.beginPath(); ctx.arc(P.x + 16, wheelY + dy, 7, 0, Math.PI * 2); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(P.x - 22, wheelY - 8 + dy); ctx.lineTo(P.x + 18, wheelY - 8 + dy); ctx.stroke();
-    // מוט כידון
-    ctx.beginPath(); ctx.moveTo(P.x + 16, wheelY - 8 + dy); ctx.lineTo(P.x + 26, wheelY - 52 + dy); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(P.x + 20, wheelY - 52 + dy); ctx.lineTo(P.x + 32, wheelY - 52 + dy); ctx.stroke();
-    // פנים
-    const fy = P.y - 34;
-    ctx.save();
-    ctx.beginPath(); ctx.arc(P.x, fy, P.r, 0, Math.PI * 2); ctx.clip();
-    if (face.complete && face.naturalWidth) ctx.drawImage(face, P.x - P.r, fy - P.r, P.r * 2, P.r * 2);
-    else { ctx.fillStyle = '#e8b4a0'; ctx.fill(); }
-    ctx.restore();
-    // הקסדה!
-    ctx.beginPath();
-    ctx.arc(P.x, fy - 2, P.r + 4, Math.PI * 1.02, Math.PI * 1.98);
-    ctx.lineTo(P.x + P.r + 2, fy - 4);
-    ctx.closePath();
-    ctx.fillStyle = 'var(--accent)'; ctx.fillStyle = '#c4593a';
-    ctx.fill();
-    ctx.beginPath(); ctx.arc(P.x, fy - 2, P.r - 4, Math.PI * 1.15, Math.PI * 1.85);
-    ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.stroke();
-  }
+  const P = { lane: 1, x: LANES[1], y: H - 64, r: 24, jumpT: 0, duckT: 0 };
+  let obstacles = [], dist = 0, speed = 210, over = false, won = false, dashOff = 0;
 
   function endWin() {
     won = true; stopRunner(); confetti(); markDone(s);
@@ -1083,20 +1165,65 @@ function startRunner(s) {
       <div class="muted" style="font-size:15px;">רואה? עם קסדה זה הולך חלק.</div>
       <button class="btn small" style="margin-top:10px;" onclick="startRunner(STAGES.find(x=>x.id==='game-runner'))">עוד סיבוב</button>`;
   }
-  function endFail(emoji) {
+  function endFail(what) {
     over = true; rnFails++; stopRunner();
     const skip = rnFails >= 3
       ? `<br><button class="hint-btn" style="display:inline-block;" onclick="markDone(STAGES.find(x=>x.id==='game-runner')); renderHome()">טוב, די, שחררי אותי 🏳️</button>`
       : '';
-    $('rn-msg').innerHTML = `<div style="font-size:22px; font-weight:900; color:var(--accent-dark);">התנגשת ב${emoji}!</div>
+    $('rn-msg').innerHTML = `<div style="font-size:22px; font-weight:900; color:var(--accent-dark);">התנגשת ב${what}!</div>
       <div class="muted" style="font-size:15px;">טוב שיש קסדה. עוד פעם?</div>
       <button class="btn small" style="margin-top:10px;" onclick="startRunner(STAGES.find(x=>x.id==='game-runner'))">עוד פעם</button>${skip}`;
   }
 
+  // גלים: בכל גל לפחות נתיב אחד חופשי
   rnSpawner = setInterval(() => {
     if (over || won) return;
-    obstacles.push({ x: -30, emoji: OBS[Math.floor(Math.random() * OBS.length)] });
-  }, 1400 + Math.random() * 400);
+    const free = Math.floor(Math.random() * 3);
+    for (let l = 0; l < 3; l++) {
+      if (l === free || Math.random() > 0.55) continue;
+      const roll = Math.random();
+      const type = roll < 0.45 ? 'block' : roll < 0.75 ? 'jump' : 'duck';
+      obstacles.push({ lane: l, y: -40, type });
+    }
+  }, 1150);
+
+  function drawPlayer(dt) {
+    // מעבר נתיב חלק
+    P.x += (LANES[P.lane] - P.x) * Math.min(1, 14 * dt);
+    const jumping = P.jumpT > 0, ducking = P.duckT > 0;
+    const fy = P.y - (jumping ? 26 : 0);
+    const rr = P.r * (jumping ? 1.18 : ducking ? 0.78 : 1);
+    // צל
+    ctx.beginPath();
+    ctx.ellipse(P.x, P.y + 26, rr * (jumping ? 0.55 : 0.9), 6, 0, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(43,33,24,.18)';
+    ctx.fill();
+    // קורקינט מרומז — קו + גלגלים
+    if (!jumping) {
+      ctx.strokeStyle = '#6d5d4d'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(P.x - 16, P.y + 22); ctx.lineTo(P.x + 16, P.y + 22); ctx.stroke();
+      ctx.beginPath(); ctx.arc(P.x - 14, P.y + 26, 5, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(P.x + 14, P.y + 26, 5, 0, Math.PI * 2); ctx.stroke();
+    }
+    // פנים
+    ctx.save();
+    ctx.beginPath();
+    if (ducking) { ctx.ellipse(P.x, fy + 8, rr, rr * 0.8, 0, 0, Math.PI * 2); }
+    else ctx.arc(P.x, fy, rr, 0, Math.PI * 2);
+    ctx.clip();
+    if (face.complete && face.naturalWidth) ctx.drawImage(face, P.x - rr, fy - rr + (ducking ? 4 : 0), rr * 2, rr * 2);
+    else { ctx.fillStyle = '#e8b4a0'; ctx.fill(); }
+    ctx.restore();
+    // קסדה
+    const hy = ducking ? fy + 2 : fy - 2;
+    ctx.beginPath();
+    ctx.arc(P.x, hy, rr + 4, Math.PI * 1.02, Math.PI * 1.98);
+    ctx.closePath();
+    ctx.fillStyle = '#c4593a';
+    ctx.fill();
+    ctx.beginPath(); ctx.arc(P.x, hy, rr - 3, Math.PI * 1.15, Math.PI * 1.85);
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.stroke();
+  }
 
   let lastT = performance.now();
   function tick() {
@@ -1104,37 +1231,120 @@ function startRunner(s) {
     const now = performance.now();
     const dt = Math.min((now - lastT) / 1000, 0.25);
     lastT = now;
-    // פיזיקה
-    P.vy += 1300 * dt;
-    P.y += P.vy * dt;
-    if (P.y > GROUND) { P.y = GROUND; P.vy = 0; }
-    speed += 4 * dt;
-    dist += speed * dt / 12;
+    P.jumpT = Math.max(0, P.jumpT - dt);
+    P.duckT = Math.max(0, P.duckT - dt);
+    speed += 6 * dt;
+    dist += speed * dt / 15;
+    dashOff = (dashOff + speed * dt) % 44;
     $('rn-score').textContent = Math.floor(dist) + ' מ׳';
     if (dist >= GOAL) return endWin();
-    // ציור
+
     ctx.clearRect(0, 0, W, H);
-    ctx.strokeStyle = '#c9b598'; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(0, GROUND + 24); ctx.lineTo(W, GROUND + 24); ctx.stroke();
-    obstacles.forEach(o => {
-      o.x += speed * dt;
-      ctx.font = '30px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
-      ctx.fillText(o.emoji, o.x, GROUND + 26);
+    // קווי נתיבים נעים
+    ctx.strokeStyle = '#cbb695'; ctx.lineWidth = 2;
+    [W * 0.34, W * 0.66].forEach(x => {
+      ctx.setLineDash([26, 18]);
+      ctx.lineDashOffset = -dashOff;
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
     });
-    obstacles = obstacles.filter(o => o.x < W + 60);
-    // התנגשות — רק כשהיא נמוכה
+    ctx.setLineDash([]);
+
+    // מכשולים
     for (const o of obstacles) {
-      if (Math.abs(o.x - P.x) < 24 && P.y > GROUND - 30) return endFail(o.emoji);
+      o.y += speed * dt;
+      const x = LANES[o.lane];
+      if (o.type === 'duck') {
+        ctx.fillStyle = '#8a7a6a';
+        ctx.fillRect(x - laneW / 2 + 6, o.y - 8, laneW - 12, 10);
+        ctx.font = '20px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('⚠️', x, o.y - 3);
+      } else {
+        ctx.font = '32px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(o.type === 'block' ? '🚧' : '🕳️', x, o.y);
+      }
     }
-    drawPlayer();
+    obstacles = obstacles.filter(o => o.y < H + 50);
+
+    // התנגשויות
+    for (const o of obstacles) {
+      if (o.lane !== P.lane || Math.abs(o.y - P.y) > 26) continue;
+      if (o.type === 'block') return endFail('🚧');
+      if (o.type === 'jump' && P.jumpT <= 0) return endFail('🕳️');
+      if (o.type === 'duck' && P.duckT <= 0) return endFail('שלט 🪧');
+    }
+    drawPlayer(dt);
   }
-  const jump = e => {
-    e.preventDefault();
-    if (!over && !won && P.y >= GROUND - 1) P.vy = -560;
+
+  // שליטה: החלקות
+  let touchStart = null;
+  cv.addEventListener('pointerdown', e => { e.preventDefault(); touchStart = { x: e.clientX, y: e.clientY }; });
+  cv.addEventListener('pointerup', e => {
+    if (!touchStart || over || won) return;
+    const dx = e.clientX - touchStart.x, dy = e.clientY - touchStart.y;
+    touchStart = null;
+    if (Math.abs(dx) > 28 && Math.abs(dx) > Math.abs(dy)) {
+      P.lane = Math.max(0, Math.min(2, P.lane + (dx > 0 ? 1 : -1)));
+    } else if (dy < -28) { P.jumpT = 0.55; }
+    else if (dy > 28) { P.duckT = 0.6; }
+    else { P.jumpT = 0.55; } // טאפ = קפיצה
+  });
+
+  if (DEV) window.__rn = {
+    P, obstacles,
+    add: o => obstacles.push(o),
+    setLane: l => { P.lane = l; P.x = LANES[l]; },
+    jump: () => { P.jumpT = 0.55; },
+    duck: () => { P.duckT = 0.6; },
+    getDist: () => dist,
+    boost: () => { dist = GOAL - 2; }
   };
-  cv.addEventListener('pointerdown', jump);
   $('rn-msg').innerHTML = '';
   rnLoop = setInterval(tick, 16);
+}
+
+/* ---------- רום או עלמה? ---------- */
+function renderQuotes(s, el) {
+  let qi = 0, score = 0;
+  const total = s.quotes.length;
+  el.innerHTML = `
+    <div class="kicker">${s.title}</div>
+    <h2 style="margin-top:10px;">מי אמר את זה? 🗣️</h2>
+    <div class="paper" style="text-align:center;">
+      <div id="qt-num" class="muted" style="font-size:14px;"></div>
+      <div id="qt-text" style="font-size:22px; font-weight:800; margin-top:8px;"></div>
+    </div>
+    <div style="display:flex; gap:12px; justify-content:center; margin-top:18px;">
+      <button class="btn" id="qt-rom" style="min-width:110px;">רום</button>
+      <button class="btn" id="qt-alma" style="min-width:110px;">עלמה</button>
+    </div>
+    <div class="feedback" id="qt-fb"></div>
+    <div id="qt-msg" style="text-align:center; margin-top:10px;"></div>
+    <div class="back-row"><button class="btn ghost small" onclick="renderHome()">חזרה</button></div>`;
+  const show = () => {
+    $('qt-num').textContent = `ציטוט ${qi + 1} מתוך ${total}`;
+    $('qt-text').textContent = '"' + s.quotes[qi].t + '"';
+    $('qt-fb').textContent = '';
+  };
+  const answer = who => {
+    const right = s.quotes[qi].who === who;
+    if (right) score++;
+    $('qt-fb').className = 'feedback ' + (right ? 'good' : 'bad');
+    $('qt-fb').textContent = right ? 'נכון! ✓' : `לא — זה ${s.quotes[qi].who}.`;
+    setTimeout(() => {
+      qi++;
+      if (qi < total) return show();
+      $('qt-rom').style.display = $('qt-alma').style.display = 'none';
+      $('qt-text').textContent = '';
+      $('qt-num').textContent = '';
+      confetti();
+      markDone(s);
+      $('qt-msg').innerHTML = `<div style="font-size:26px; font-weight:900; color:var(--accent);">${score} מתוך ${total}! 🎉</div>
+        <div class="muted" style="font-size:15px;">${score === total ? 'את מכירה אותנו יותר טוב מאיתנו.' : score >= total / 2 ? 'לא רע. יש עוד מה ללמוד עליי.' : 'אנחנו צריכים לדבר יותר.'}</div>`;
+    }, 900);
+  };
+  $('qt-rom').onclick = () => answer('רום');
+  $('qt-alma').onclick = () => answer('עלמה');
+  show();
 }
 
 /* ---------- קונפטי ---------- */

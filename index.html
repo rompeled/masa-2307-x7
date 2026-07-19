@@ -168,6 +168,7 @@
   <div class="kicker">23.7 · יום ההולדת של</div>
   <h1>עלמה 🎈</h1>
   <p class="muted" style="margin-top:6px;">היום הזה בנוי מתחנות. כל תחנה נפתחת ברגע הנכון — ורום מחזיק את הקודים. אין לדלג. אין לנדנד. (מותר לנדנד קצת.)</p>
+  <p id="open-note" class="muted" style="display:none; margin-top:8px; font-weight:800; color:var(--gold);">🔓 מצב בדיקה — כל התחנות פתוחות, בלי קודים.</p>
   <div class="progress-row">
     <div class="pbar"><div id="pfill"></div></div>
     <div id="ppct">0%</div>
@@ -418,12 +419,16 @@ const store = {
   get done() { try { return JSON.parse(localStorage.getItem('alma20') || '[]'); } catch { return []; } },
   set done(v) { localStorage.setItem('alma20', JSON.stringify(v)); }
 };
+// מצב בדיקה לימים הקרובים: הכל פתוח, בלי קודים ובלי סדר.
+// ⚠️ להחזיר ל-false אחרי שהטקסטים של רום נכנסים (לפני 22.7)!
+const OPEN_MODE = true;
 const DEV = location.search.includes('dev');
 if (location.search.includes('reset')) { localStorage.removeItem('alma20'); history.replaceState(null, '', location.pathname + (DEV ? '?dev' : '')); }
 
 function stageState(i) {
   const done = store.done;
   if (done.includes(STAGES[i].id)) return 'done';
+  if (OPEN_MODE) return 'next';
   const firstUndone = STAGES.findIndex(s => !done.includes(s.id));
   return i === firstUndone ? 'next' : 'locked';
 }
@@ -487,6 +492,7 @@ function renderHome() {
     map.appendChild(deco);
   });
 
+  if (OPEN_MODE) $('open-note').style.display = 'block';
   const pct = Math.round(doneCount / n * 100);
   $('pfill').style.width = pct + '%';
   $('ppct').textContent = pct + '%';
@@ -500,6 +506,7 @@ function openStage(i) {
   const el = $('stage');
   el.classList.add('on');
   window.scrollTo(0, 0);
+  if (OPEN_MODE) return renderContent(s, el, false);
   if (store.done.includes(s.id)) return renderContent(s, el, true);
   renderCodeGate(s, el, i);
 }

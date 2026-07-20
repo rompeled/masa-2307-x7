@@ -194,239 +194,186 @@
 
 const norm = s => (s || '').trim().replace(/[\s\-_.,!?'"״׳:;()]/g, '').replace(/ף/g,'פ').replace(/ם/g,'מ').replace(/ן/g,'נ').replace(/ץ/g,'צ').replace(/ך/g,'כ');
 
-// מפתח בדיקה זמני — עובד בכל שדה (קוד/חידה/ניחוש) עד שנכנס התוכן האמיתי. להסיר לפני 20.7!
-const TEST_KEY = 'PLACEHOLDER';
 const matches = (answers, value) => {
   const v = norm(value);
-  return answers.some(a => norm(a) === v) || v.toUpperCase() === TEST_KEY;
+  return answers.some(a => norm(a) === v);
 };
 
 const STAGES = [
   {
-    id: 'letter',
-    icon: '✉️',
-    title: 'בוקר טוב, ילדת יום הולדת',
-    sub: 'מתחילים כאן. ברמת גן.',
-    code: { answers: ['PLACEHOLDER'] },   // רום יגדיר: הקוד לשלב הפתיחה
+    id: 'letter', icon: '✉️', title: 'בוקר טוב, ילדת יום הולדת', sub: 'מתחילים כאן. ברמת גן.',
+    code: { prompt: 'אמנם זה יום ההולדת שלך, אבל — מה תאריך יום ההולדת שלי? (הרי את תמיד זוכרת אותו בעל פה)',
+            answers: ['שלישי באוקטובר', '3.10', '3/10', '03.10', 'השלישי באוקטובר', '3 באוקטובר'] },
     type: 'letter',
     letter: [
-      'עלמה,',
-      '[כאן ייכנס המכתב של רום — הוא כותב, ברוך משכתב. פיגום זמני.]',
-      '— רום'
+      'ממי שלי בוקר טוב!',
+      'מקווה שהתעוררת על הצד המושלם שלך (כמו כל בוקר).',
+      'זו לא באמת הברכה — אבל הברכה תגיע גם היא.',
+      'בינתיים אגיד שאנחנו יוצאים ליום שלם של כיף וחוויה. תבואי עם ראש פתוח ותזרמי עם מה שיש פה.',
+      'הלינק הזה ילווה אותך לאורך כל היום — תשמרי אותו ותהיי מפוקסת!',
+      'אבל רגע... חשבת שתקבלי את המתנות והכיף בקלות? חיה בסרט. תצטרכי להתאמץ 😉'
     ]
   },
   {
-    id: 'gift-film',
-    icon: '🎁',
-    title: 'מתנה ראשונה',
-    sub: 'עוד בבית. לפני הקפה.',
-    code: { answers: ['PLACEHOLDER'] },
+    id: 'gift-film', icon: '🎁', title: 'מתנה ראשונה', sub: 'עוד בבית. לפני הקפה.',
+    code: { prompt: 'המנה שהזמנת בדייט הראשון שלנו...',
+            answers: ['ניוקי ביתי בחמאת עגבניות', 'ניוקי בחמאת עגבניות', 'ניוקי'] },
     type: 'gift',
     quiz: [
-      { q: 'באיזו סדנה היינו לפני חודש?', answers: ['סדנת פיתוח פילם', 'פיתוח פילם', 'סדנת פילם'] },
-      { q: '[שאלה מובילה 2 — רום כותב]', answers: ['PLACEHOLDER'] }
+      { q: 'באיזו סדנה היינו לפני חודש?', answers: ['פיתוח פילם', 'סדנת פיתוח פילם', 'צילום פילם', 'סדנת צילום פילם'] },
+      { q: 'ומה השם של המרצה (השני!) בסדנה?', answers: ['יהונתן יעקבי', 'יונתן יעקבי', 'יהונתן', 'יונתן'] }
     ],
     guess: {
       prompt: 'אז... יש לך ניחוש? מה המתנה?',
-      answers: ['מצלמת פילם', 'מצלמה', 'מצלמת פילים', 'מצלמתפילם'],
+      answers: ['מצלמת פילם', 'פילם'],
       wrong: ['לא. אבל חמוד שניסית.', 'קר. קר מאוד.', 'ממש לא. תחשבי על הסדנה.', 'את מתקרבת? לא יודע. אולי. לא.'],
-      hints: ['רמז: זה קשור לסדנה ההיא.', 'רמז אחרון: 36 תמונות בגלגול.']
+      hints: ['בתדר...', 'עם איתן...']
     },
     reveal: {
-      emoji: '📷',
-      name: 'מצלמת פילם + פילמים',
-      body: '[טקסט החשיפה — רום כותב. פיגום: כי התמונות הכי טובות שלנו יוצאות קצת שרופות.]',
-      photo: 'photos/film.jpg',
-      photoCap: 'זאת למשל. פילם אמיתי.',
-      handoff: 'עכשיו תסתכלי על רום. יש לו משהו בשבילך. 🎁 (ומהיום — את הצלמת הרשמית של היום הזה.)'
+      emoji: '📷', name: 'מצלמת פילם + פילמים',
+      body: 'תתחדשי יפה שלי!!!!<br>את כבר גילית מצלמה — אבל אמרת מצלמה דיגיטלית. אז זו מצלמה, אבל לא דיגיטלית!<br>ונכון שכבר יש לך אחת (אני כותב את זה הרבה לפני יום ההולדת, אז כשאני כותב עוד לא קנית אותה — אבל מניח ומקווה שכשאת קוראת את זה כבר יש לך מצלמה). והנה את, ברגע אחד עם שתי מצלמות, יוצאת ליום כיף — שדיר באלאק שלא תתעדי אותו.<br>אז יש פה מצלמה, יש פה סוללה, ויש פה אפילו יותר מפילם אחד — כדי שאחרי הראשון כבר תוכלי לפתח בעצמך אם תרצי :)<br><strong>מזל טוב תותי</strong>',
+      photo: 'photos/film.jpg', photoCap: 'זאת למשל — פילם אמיתי. תעשי לנו עוד כאלה.',
+      handoff: 'עכשיו תסתכלי על רום. יש לו משהו בשבילך 🎁 (ומהרגע הזה — את הצלמת הרשמית של היום.)'
     }
   },
   {
-    id: 'gift-helmet',
-    icon: '🎁',
-    title: 'מתנה שנייה',
-    sub: 'לפני שיוצאים מהבית.',
-    code: { answers: ['PLACEHOLDER'] },
+    id: 'gift-helmet', icon: '🎁', title: 'מתנה שנייה', sub: 'לפני שיוצאים מהבית.',
+    code: { prompt: 'מה בית הקולנוע הראשון שהיינו בו ביחד?',
+            answers: ['סינמה סיטי', 'סינמה סיטי גלילות', 'גלילות'] },
     type: 'gift',
     quiz: [
-      { q: '[שאלה מובילה — למשל: על מה אני צועק עלייך כל פעם מחדש?]', answers: ['PLACEHOLDER'] }
+      { q: 'מה הדבר שאני הכי שונא שאת עושה?', answers: ['לא שמה קסדה בקורקינט', 'קורקינט', 'רוכבת על קורקינט', 'נוסעת על קורקינט', 'לא שמה קסדה', 'בלי קסדה'] }
     ],
     guess: {
       prompt: 'נו? מה המתנה?',
-      answers: ['קסדה', 'כובע מגן', 'קסדת קורקינט'],
+      answers: ['קסדה', 'קסדה לקורקינט'],
       wrong: ['לא. תחשבי על משהו שמרגיז אותי.', 'קר. תחשבי קורקינט.', 'לא, אבל כיוון מעניין.'],
-      hints: ['רמז: זה קשור לקורקינט.', 'רמז אחרון: זה הולך על הראש.']
+      hints: ['הדבר שהכי מכניס אותי ללחץ...', 'הכי לא בטיחותי שלך']
     },
     reveal: {
-      emoji: '🛴',
-      name: 'הקסדה הכי מביכה בישראל',
-      body: '[טקסט החשיפה — רום כותב. פיגום: הפסקתי לנאום על בטיחות. עשיתי לך קסדה עם הפרצוף שלך עליה. מעכשיו כל רחוב יידע מי זאת.]',
+      emoji: '🛴', name: 'הקסדה הכי מגניבה (ומביכה) בעולם',
+      body: 'כמה אני שונאאאאא שאת לא שמה קסדה?<br>אז הנה. מעכשיו כולם יידעו מי זאת שנוסעת עם הקסדה הכי מגניבה (ומביכה) בעולם — וגם את תהיי בטיחותית!<br>והכי חשוב: היא בלי חיידקים של פריפריאלים בליים...',
       photo: null,
-      handoff: 'היא אמיתית. היא פיזית. תסתכלי על רום. 🎁'
+      handoff: 'היא אמיתית. היא פיזית. תסתכלי על רום 🎁'
     }
   },
   {
-    id: 'game-runner',
-    icon: '🛴',
-    title: 'ראנר הקורקינט',
-    sub: 'עכשיו כשיש קסדה — סעי.',
-    code: { answers: ['PLACEHOLDER'] },
+    id: 'game-runner', icon: '🛴', title: 'ראנר הקורקינט', sub: 'עכשיו כשיש קסדה — סעי.',
     type: 'runner'
   },
   {
-    id: 'surprise-train',
-    icon: '🚆',
-    title: 'רגע, לאן אנחנו נוסעים?',
-    sub: 'נפתח כשנהיה בדרך.',
-    code: { answers: ['PLACEHOLDER'] },
+    id: 'surprise-train', icon: '🚆', title: 'רגע, לאן אנחנו נוסעים?', sub: 'נפתח כשנהיה בדרך.',
+    code: { prompt: 'השלימי את המשפט: תודה ל...', answers: ['מוראד', 'מורד'] },
     type: 'buildup',
-    lines: [
-      'את בטח שואלת את עצמך למה ביקשתי שתארזי תיק.',
-      'ולמה אנחנו ברכבת.',
-      'אז ככה:'
-    ],
-    punch: 'נוסעים לירושלים. 🌆',
+    lines: ['טוב, אז את בטח שואלת את עצמך מה הלאה, ומה התחנה הבאה שלנו...'],
+    punch: 'נוסעים לירושלים!!!! 🚆',
     after: {
-      body: '[טקסט של רום על היום בירושלים — פיגום.]',
+      body: 'יש לנו רכבת להספיק אליה..',
       photo: 'photos/jerusalem.jpg',
-      photoCap: 'הפעם הקודמת שלנו שם.'
+      photoCap: 'עוד שנייה אנחנו שוב שם.'
     }
   },
   {
-    id: 'gallery',
-    icon: '📸',
-    title: 'אנחנו — הגלריה',
-    sub: 'לדרך. שיהיה מה לראות ברכבת.',
-    code: { answers: ['PLACEHOLDER'] },
+    id: 'gallery', icon: '📸', title: 'אנחנו — הגלריה', sub: 'לדרך. שיהיה מה לראות ברכבת.',
+    code: { prompt: 'האימוג׳י שמתאר הכי במדויק את ההודעה הראשונה ששלחתי לך...', answers: ['🐟'] },
     type: 'gallery',
     photos: [
-      { src: 'photos/hero.jpg',  cap: '[כיתוב של רום]' },
-      { src: 'photos/g01.jpg',  cap: '[כיתוב של רום]' },
-      { src: 'photos/g02.jpg',  cap: '[כיתוב של רום]' },
-      { src: 'photos/g03.jpg',  cap: '[כיתוב של רום]' },
-      { src: 'photos/g04.jpg',  cap: '[כיתוב של רום]' },
-      { src: 'photos/g05.jpg',  cap: '[כיתוב של רום]' },
-      { src: 'photos/g06.jpg',  cap: '[כיתוב של רום]' },
-      { src: 'photos/g07.jpg',  cap: '[כיתוב של רום]' },
-      { src: 'photos/g08.jpg',  cap: '[כיתוב של רום]' },
-      { src: 'photos/g09.jpg',  cap: '[כיתוב של רום]' },
-      { src: 'photos/g10.jpg',  cap: '[כיתוב של רום]' },
-      { src: 'photos/g11.jpg',  cap: '[כיתוב של רום]' },
-      { src: 'photos/g12.jpg',  cap: '[כיתוב של רום]' },
-      { src: 'photos/g13.jpg',  cap: '[כיתוב של רום]' },
-      { src: 'photos/g14.jpg',  cap: '[כיתוב של רום]' },
-      { src: 'photos/train.jpg', cap: 'ככה את נראית בכל נסיעה מעל 11 דקות.' }
+      { src: 'photos/hero.jpg',  cap: 'שניצלוני' },
+      { src: 'photos/g01.jpg',  cap: 'שניצלוני לוני לוני עם חצי פנים' },
+      { src: 'photos/g02.jpg',  cap: 'זוכרת? שבוע הספר!' },
+      { src: 'photos/g03.jpg',  cap: 'גלידה הכי כיף עם תותי שלי' },
+      { src: 'photos/g04.jpg',  cap: 'הפעם הראשונה בחדרה' },
+      { src: 'photos/g05.jpg',  cap: 'הפעם השנייה בחדרה' },
+      { src: 'photos/g06.jpg',  cap: 'תמיד הייתי באדיבילדר' },
+      { src: 'photos/g07.jpg',  cap: 'יפההההה שליייייי' },
+      { src: 'photos/g08.jpg',  cap: 'אני מתתתתתתת' },
+      { src: 'photos/g09.jpg',  cap: 'עוד שנייה אנחנו שוב שם' },
+      { src: 'photos/g10.jpg',  cap: 'תמונה אייקונית' },
+      { src: 'photos/g11.jpg',  cap: 'מההצעת נישואים :) @נדב' },
+      { src: 'photos/g12.jpg',  cap: 'מממממ קצת מושבניקים' },
+      { src: 'photos/g13.jpg',  cap: 'יאמי יאמי' },
+      { src: 'photos/g14.jpg',  cap: 'שניצלון שלי' },
+      { src: 'photos/train.jpg', cap: 'פוב: את כל ערב' }
     ]
   },
   {
-    id: 'game-matcha',
-    icon: '🍵',
-    title: 'הפסקת משחק',
-    sub: 'תפסי 20. אל תתפסי שטויות.',
-    code: { answers: ['PLACEHOLDER'] },
-    type: 'game'
+    id: 'game-matcha', icon: '🍵', title: 'הפסקת משחק', sub: 'תפסי 20. אל תתפסי שטויות.',
+    code: { prompt: 'חובה בכל בוקר...', answers: ['מאצה', 'מאצ׳ה', "מאצ'ה"] },
+    type: 'game',
+    intro: 'חושבת שתצליחי לתפוס את המאצ׳ות? קדימה, בואי נראה אותך. רק תיזהרי מכל הזבל...'
   },
   {
-    id: 'game-memory',
-    icon: '🃏',
-    title: 'משחק הזיכרון',
-    sub: 'מצאי את הזוגות. עוד ברכבת.',
-    code: { answers: ['PLACEHOLDER'] },
+    id: 'game-memory', icon: '🃏', title: 'משחק הזיכרון', sub: 'מצאי את הזוגות. עוד ברכבת.',
     type: 'memory'
   },
   {
-    id: 'gift-kindle',
-    icon: '🎁',
-    title: 'מתנה שלישית',
-    sub: 'איפשהו בירושלים.',
-    code: { answers: ['PLACEHOLDER'] },
+    id: 'gift-kindle', icon: '🎁', title: 'מתנה שלישית', sub: 'איפשהו בירושלים.',
+    code: { prompt: 'כשאת הולכת לשירותים, את הולכת לעשות...', answers: ['קקוי', 'קקויי', 'קקוים'] },
     type: 'gift',
     quiz: [
-      { q: '[שאלה מובילה — למשל: מה את מסיימת יותר מהר משאני בוחר מה לראות?]', answers: ['PLACEHOLDER'] }
+      { q: 'מה אנחנו תמיד אומרים שנעשה לפני השינה, אבל בתכלס לא מקיימים הרבה?', answers: ['ספרים', 'ספר', 'לקרוא ספרים', 'לקרוא ספר', 'קריאה', 'זמן קריאה', 'לקרוא'] }
     ],
     guess: {
       prompt: 'ניחוש. עכשיו.',
-      answers: ['קינדל', 'קורא ספרים', 'קורא אלקטרוני', 'kindle'],
+      answers: ['קינדל', 'קורא ספרים', 'kindle', 'קינדל פייפרווייט'],
       wrong: ['לא. תחשבי ספרים.', 'קר. ספרייה שלמה בתיק.', 'כמעט? לא באמת.'],
-      hints: ['רמז: זה שוקל פחות מספר אחד ומכיל אלף.', 'רמז אחרון: אמזון המציאו את זה.']
+      hints: ['ספרייה שלמה בתיק אחד...', 'אמזון המציאו את זה']
     },
     reveal: {
-      emoji: '📚',
-      name: 'קינדל',
-      body: '[טקסט החשיפה — רום כותב. פיגום: ספרייה שלמה שנכנסת לתיק.]',
-      photo: 'photos/kindle.jpg',
-      photoCap: 'תיעוד: את קוראת, אני מחזיק דף ומעמיד פנים.',
-      handoff: 'תסתכלי על רום. 🎁'
+      emoji: '📚', name: 'קינדל',
+      body: 'אז נכון, את עלית על זה... (כן כן, וזה באשמתי) אבללללל תתחדשי ממי שלי!!!<br>מהיום כל הספרים שלך נכנסים לתיק אחד! ואין תירוצים!<br>נגמר ספר באמצע רכבת? פותחת את הבא. משעמם בטיסה ליפן? פותחת ספר!<br>(ובלי לקפל פינות של דפים!!! עכשיו זה גם בלתי אפשרי)<br><strong>מזל טוב תותי</strong>',
+      photo: 'photos/kindle.jpg', photoCap: 'תיעוד: את קוראת, אני מחזיק דף ומעמיד פנים.',
+      handoff: 'תסתכלי על רום 🎁'
     }
   },
   {
-    id: 'game-puzzle',
-    icon: '🧩',
-    title: 'הפאזל',
-    sub: 'תרכיבי אותנו בחזרה.',
-    code: { answers: ['PLACEHOLDER'] },
+    id: 'game-puzzle', icon: '🧩', title: 'הפאזל', sub: 'תרכיבי אותנו בחזרה.',
     type: 'puzzle',
     img: 'photos/puzzle.jpg',
-    caption: '[כיתוב של רום לתמונת הפאזל]'
+    caption: 'מההצעת נישואים :) @נדב'
   },
   {
-    id: 'surprise-hotel',
-    icon: '🌙',
-    title: 'עוד הפתעה קטנה',
-    sub: 'נפתח אחר הצהריים.',
-    code: { answers: ['PLACEHOLDER'] },
-    type: 'buildup',
-    lines: [
-      'שמת לב שלא אמרתי מתי חוזרים?',
-      'אז זהו.'
-    ],
-    punch: 'לא חוזרים היום.<br>ישנים בירושלים. 🏨',
-    after: {
-      body: '[טקסט של רום — פיגום.]',
-      photo: null
-    }
-  },
-  {
-    id: 'game-quotes',
-    icon: '🗣️',
-    title: 'רום או עלמה?',
-    sub: 'מי אמר את זה. בלי לריב.',
-    code: { answers: ['PLACEHOLDER'] },
+    id: 'game-quotes', icon: '🗣️', title: 'רום או עלמה?', sub: 'מי אמר את זה. בלי לריב.',
     type: 'quotes',
     quotes: [
-      { t: '[ציטוט פיגום 1 — רום ימלא בטופס]', who: 'רום' },
-      { t: '[ציטוט פיגום 2]', who: 'עלמה' },
-      { t: '[ציטוט פיגום 3]', who: 'רום' }
+      { t: 'דיר באלאק שלא תתעדי את היום הזה', who: 'רום' },
+      { t: 'מה נראה עם האוכל', who: 'עלמה' },
+      { t: 'לא להמציאאאאא / לא לחרטטטטטטט', who: 'עלמה' },
+      { t: 'תוציאי את האוזניות מהאוזנייםםםםם', who: 'רום' },
+      { t: 'איכס פריפריאלים', who: 'עלמה' },
+      { t: 'סעי בזהירות ממי', who: 'רום' },
+      { t: 'פפויייייי / קקויייייייי', who: 'עלמה' }
     ]
   },
   {
-    id: 'surprise-dinner',
-    icon: '🍽️',
-    title: 'והדבר האחרון להיום',
-    sub: 'נפתח לקראת ערב.',
-    code: { answers: ['PLACEHOLDER'] },
+    id: 'surprise-hotel', icon: '🌙', title: 'עוד הפתעה קטנה', sub: 'נפתח אחר הצהריים.',
+    code: { prompt: 'הקוד הפעם פשוט. תכתבי: "אני סומכת על רום"', answers: ['אני סומכת על רום', 'סומכת על רום', 'סומכת'] },
     type: 'buildup',
-    lines: [
-      'רעבה?',
-      'יופי. כי יש לנו שולחן שמור.'
-    ],
-    punch: 'ארוחת ערב במסעדה.<br>הזמנתי מקום. 🥂',
+    lines: ['אנחנו תכף מפספסים את הרכבת חזרה!!', 'טוב נו... אין צורך באמת.'],
+    punch: 'לא חוזרים היום.<br>ישנים בירושלים!!!! 🏨',
     after: {
-      body: '[טקסט של רום + אולי שם המסעדה או רמז אליה — פיגום.]',
+      body: 'מלון בראון ממילא. חמש דקות מקניות, ממחנה יהודה...<br>זוכרת שרצינו?<br>כוסעמק אני מאוהב לך בצורה.',
       photo: null
     }
   },
   {
-    id: 'goodnight',
-    icon: '❤️',
-    title: 'סוף היום',
-    sub: 'לפני שנרדמים.',
-    code: { answers: ['PLACEHOLDER'] },
+    id: 'surprise-dinner', icon: '🍽️', title: 'והדבר האחרון להיום', sub: 'נפתח לקראת ערב.',
+    code: { prompt: 'מה החלק שאני הכי אוהב בך, תמיד תמיד?', answers: ['חיוך', 'החיוך', 'החיוך שלי', 'חיוך שלי'] },
+    type: 'buildup',
+    lines: ['רעבה?', 'יופי. כי אני גווע.', 'ויש מקום ששומר לנו שולחן...'],
+    punch: 'ארוחת ערב חגיגית! 🥂',
+    after: { body: '', photo: null }
+  },
+  {
+    id: 'goodnight', icon: '❤️', title: 'סוף היום', sub: 'לפני שנרדמים.',
+    code: { prompt: 'איך היה היום שלך, בסולם של 1 עד 20?', answers: ['20', 'עשרים'] },
     type: 'letter',
     letter: [
-      '[מכתב סיום קצר של רום — פיגום.]',
-      'יום הולדת שמח, אהובה שלי. ❤️',
-      '— רום'
+      'ממי שלי,',
+      'כמה שאני אוהב אותך — לא בטוח שהצלחתי לדחוס את זה ליום אחד. אבל מזל שיש לנו עוד המון ימים לנסות.',
+      'ושהתקופה הכי הכי הכי הכי יפה שלנו מתחילה עוד רגע.',
+      'לילה טוב תותי שלי ❤️',
+      'אני אוהב אותך.'
     ]
   }
 ];
@@ -440,7 +387,7 @@ const store = {
 };
 // מצב בדיקה לימים הקרובים: הכל פתוח, בלי קודים ובלי סדר.
 // ⚠️ להחזיר ל-false אחרי שהטקסטים של רום נכנסים (לפני 22.7)!
-const OPEN_MODE = true;
+const OPEN_MODE = false;
 const DEV = location.search.includes('dev');
 if (location.search.includes('reset')) { localStorage.removeItem('alma20'); history.replaceState(null, '', location.pathname + (DEV ? '?dev' : '')); }
 
@@ -527,6 +474,7 @@ function openStage(i) {
   window.scrollTo(0, 0);
   if (OPEN_MODE) return renderContent(s, el, false);
   if (store.done.includes(s.id)) return renderContent(s, el, true);
+  if (!s.code) return renderContent(s, el, false);
   renderCodeGate(s, el, i);
 }
 
@@ -535,8 +483,8 @@ function renderCodeGate(s, el) {
     <div class="kicker">${s.title}</div>
     <div class="code-box">
       <div class="lock">🔒</div>
-      <div class="prompt">השלב הזה נעול בקוד.</div>
-      <p class="muted" style="margin-top:6px;">רום יודע מה הקוד. תבקשי יפה.</p>
+      <div class="prompt">${s.code.prompt || 'השלב הזה נעול בקוד.'}</div>
+      <p class="muted" style="margin-top:6px;">${s.code.prompt ? 'עני נכון — וזה נפתח.' : 'רום יודע מה הקוד. תבקשי יפה.'}</p>
       <input class="answer" id="code-in" placeholder="הקישי את הקוד..." autocomplete="off">
       <div class="feedback" id="code-fb"></div>
       <button class="btn" id="code-go">פתחי</button>
@@ -742,11 +690,13 @@ function renderBuildup(s, el, revisit) {
     d.innerHTML = it.t;
     bu.appendChild(d);
   });
-  const after = document.createElement('div');
-  after.className = 'buildup-line';
-  after.innerHTML = `<div class="paper" style="text-align:right;"><p>${s.after.body}</p></div>
-    ${s.after.photo ? `<figure class="ph"><img src="${s.after.photo}"><figcaption>${s.after.photoCap || ''}</figcaption></figure>` : ''}`;
-  bu.appendChild(after);
+  if (s.after && (s.after.body || s.after.photo)) {
+    const after = document.createElement('div');
+    after.className = 'buildup-line';
+    after.innerHTML = `${s.after.body ? `<div class="paper" style="text-align:right;"><p>${s.after.body}</p></div>` : ''}
+      ${s.after.photo ? `<figure class="ph"><img src="${s.after.photo}"><figcaption>${s.after.photoCap || ''}</figcaption></figure>` : ''}`;
+    bu.appendChild(after);
+  }
   const all = [...bu.children];
   const delay = revisit ? 150 : 1500;
   all.forEach((d, i) => setTimeout(() => {
@@ -764,7 +714,7 @@ function renderGame(s, el) {
       <h2 style="font-size:24px;">תפסי את המאצ'ה 🍵</h2>
       <div id="gm-score" style="font-size:22px; font-weight:900; color:var(--accent);">0 / 20</div>
     </div>
-    <p class="muted" style="margin-top:4px;">זזים עם האצבע. מאצ'ה = טוב. כל השאר = פסילה.</p>
+    <p class="muted" style="margin-top:4px;">${s.intro ? s.intro + '<br>' : ''}זזים עם האצבע. מאצ'ה = טוב. כל השאר = פסילה.</p>
     <canvas id="gm-canvas" style="width:100%; border-radius:16px; background:linear-gradient(#f6efe6,#efe3d3); box-shadow:0 8px 24px rgba(43,33,24,.12); touch-action:none; margin-top:12px;"></canvas>
     <div id="gm-msg" style="text-align:center; margin-top:14px;"></div>
     <div class="back-row"><button class="btn ghost small" onclick="stopGame(); renderHome()">חזרה</button></div>`;
@@ -1258,9 +1208,15 @@ function renderQuotes(s, el) {
       <div id="qt-num" class="muted" style="font-size:14px;"></div>
       <div id="qt-text" style="font-size:22px; font-weight:800; margin-top:8px;"></div>
     </div>
-    <div style="display:flex; gap:12px; justify-content:center; margin-top:18px;">
-      <button class="btn" id="qt-rom" style="min-width:110px;">רום</button>
-      <button class="btn" id="qt-alma" style="min-width:110px;">עלמה</button>
+    <div style="display:flex; gap:18px; justify-content:center; margin-top:18px;">
+      <button id="qt-rom" style="background:none; border:none; cursor:pointer; font-family:inherit;">
+        <img src="photos/face-rom.jpg" style="width:84px; height:84px; border-radius:50%; border:3px solid var(--accent); display:block; margin:0 auto;">
+        <div style="font-weight:900; font-size:17px; margin-top:6px; color:var(--ink);">רום</div>
+      </button>
+      <button id="qt-alma" style="background:none; border:none; cursor:pointer; font-family:inherit;">
+        <img src="photos/face.jpg" style="width:84px; height:84px; border-radius:50%; border:3px solid var(--accent); display:block; margin:0 auto;">
+        <div style="font-weight:900; font-size:17px; margin-top:6px; color:var(--ink);">עלמה</div>
+      </button>
     </div>
     <div class="feedback" id="qt-fb"></div>
     <div id="qt-msg" style="text-align:center; margin-top:10px;"></div>
